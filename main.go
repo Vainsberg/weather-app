@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -8,6 +9,10 @@ import (
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
+	type requestweather struct {
+		Wind        float64 `json:"wind_speed_10m"`
+		Temperature float64 `json:"temperature_2m"`
+	}
 
 	query := r.URL.Query()
 	latitudeText := query.Get("latitude")
@@ -17,7 +22,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Latitude and longitude are required parameters", http.StatusBadRequest)
 		return
 	}
-	weatherAPIURL := "https://api.open-meteo.com/v1/forecast?latitude=" + latitudeText + "&longitude=" + longitudeText
+	weatherAPIURL := "https://api.open-meteo.com/v1/forecast?latitude=" + latitudeText + "&longitude=" + longitudeText + "&current=temperature_2m,wind_speed_10m"
 
 	weatherResp, err := http.Get(weatherAPIURL)
 	if err != nil {
@@ -32,9 +37,19 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
+	var requestWeather requestweather
+	err = json.Unmarshal(data, &requestWeather)
+	if err != nil {
+		log.Println("Error parsing weather data:", err)
+		http.Error(w, "Error parsing weather data", http.StatusInternalServerError)
+		return
+	}
+	responseText := fmt.Sprintf("Добрый день! Сегодня температура %0.1f градусов, скорость ветра %0.1f м/с.", requestWeather.Temperature, requestWeather.Wind)
+
+	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+	w.Write([]byte(responseText))
+
 }
 
 func main() {
