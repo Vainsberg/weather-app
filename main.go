@@ -8,11 +8,14 @@ import (
 	"net/http"
 )
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	type requestweather struct {
+type responseweather struct {
+	current struct {
 		Wind        float64 `json:"wind_speed_10m"`
 		Temperature float64 `json:"temperature_2m"`
-	}
+	} `json:"current"`
+}
+
+func handler(w http.ResponseWriter, r *http.Request) {
 
 	query := r.URL.Query()
 	latitudeText := query.Get("latitude")
@@ -37,14 +40,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	var requestWeather requestweather
-	err = json.Unmarshal(data, &requestWeather)
+	var responseWeather responseweather
+	err = json.Unmarshal(data, &responseWeather)
 	if err != nil {
 		log.Println("Error parsing weather data:", err)
 		http.Error(w, "Error parsing weather data", http.StatusInternalServerError)
 		return
 	}
-	responseText := fmt.Sprintf("Добрый день! Сегодня температура %0.1f градусов, скорость ветра %0.1f м/с.", requestWeather.Temperature, requestWeather.Wind)
+	responseText := fmt.Sprintf("Добрый день! Сегодня температура %0.1f градусов, скорость ветра %0.1f м/с.", responseWeather.current.Temperature, responseWeather.current.Wind)
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
