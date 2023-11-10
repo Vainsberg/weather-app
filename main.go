@@ -9,7 +9,7 @@ import (
 )
 
 type responseweather struct {
-	current struct {
+	Сurrent struct {
 		Wind        float64 `json:"wind_speed_10m"`
 		Temperature float64 `json:"temperature_2m"`
 	} `json:"current"`
@@ -47,7 +47,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error parsing weather data", http.StatusInternalServerError)
 		return
 	}
-	responseText := fmt.Sprintf("Добрый день! Сегодня температура %0.1f градусов, скорость ветра %0.1f м/с.", responseWeather.current.Temperature, responseWeather.current.Wind)
+	responseText := fmt.Sprintf("Добрый день! Сегодня температура %0.1f градусов, скорость ветра %0.1f м/с.", responseWeather.Сurrent.Temperature, responseWeather.Сurrent.Wind)
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
