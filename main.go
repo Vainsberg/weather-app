@@ -7,6 +7,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var db *sql.DB
@@ -97,6 +99,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer db.Close()
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS text (
 			id INTEGER PRIMARY KEY,
