@@ -20,8 +20,8 @@ type responseweather struct {
 	} `json:"current"`
 }
 type Coordinates struct {
-	Latitude  int
-	Longitude int
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -38,7 +38,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(http.StatusBadRequest)
 		return
 	}
-	row := db.QueryRow("select * from text where latitude = $1 AND longitude = $2 AND created_at >= NOW() - INTERVAL 1 HOUR;", coord.Latitude, coord.Longitude)
+	row := db.QueryRow("SELECT * FROM text WHERE latitude = $1 AND longitude = $2 AND created_at >= NOW() - INTERVAL 1 HOUR;", coord.Latitude, coord.Longitude)
 	responseN := Coordinates{}
 
 	err = row.Scan(&responseN.Latitude, &responseN.Longitude)
