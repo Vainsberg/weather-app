@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -15,54 +14,43 @@ import (
 var db *sql.DB
 
 type responseweather struct {
-	Сurrent struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+	Current   struct {
 		Wind        float64 `json:"wind_speed_10m"`
 		Temperature float64 `json:"temperature_2m"`
 	} `json:"current"`
 }
-type Coordinates struct {
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
-}
 
 func handler(w http.ResponseWriter, r *http.Request) {
 
-	var coord Coordinates
+	query := r.URL.Query()
+	latitudeText := query.Get("latitude")
+	longitudeText := query.Get("longitude")
 
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		fmt.Println(http.StatusBadRequest)
-		return
-	}
-	err = json.Unmarshal(body, &coord)
-	if err != nil {
-		fmt.Println(http.StatusBadRequest)
-		return
-	}
-	row := db.QueryRow("SELECT * FROM text WHERE latitude = $1 AND longitude = $2 AND created_at >= NOW() - INTERVAL 1 HOUR;", coord.Latitude, coord.Longitude)
-	responseN := Coordinates{}
+	row := db.QueryRow("SELECT * FROM text WHERE latitude = $1 AND longitude = $2 AND date >= datetime('now','-1 hours');", latitudeText, longitudeText)
 
-	err = row.Scan(&responseN.Latitude, &responseN.Longitude)
+	responseN := responseweather{}
+
+	err := row.Scan(&responseN.Latitude, &responseN.Longitude)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if responseN.Latitude != 0 || responseN.Longitude != 0 {
-		var response responseweather
-		responseText := fmt.Sprintf("Добрый день! Сегодня температура %0.1f градусов, скорость ветра %0.1f м/с.", response.Сurrent.Temperature, response.Сurrent.Wind)
+		responseText := fmt.Sprintf("Добрый день! Сегодня температура %0.1f градусов, скорость ветра %0.1f м/с.", responseN.Current.Temperature, responseN.Current.Wind)
+
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(responseText))
 	} else {
 
-		strLatitude := strconv.FormatFloat(coord.Latitude, 'f', -1, 64)
-		strLongitude := strconv.FormatFloat(coord.Longitude, 'f', -1, 64)
-
-		weatherAPIURL := "https://api.open-meteo.com/v1/forecast?latitude=" + strLatitude + "&longitude=" + strLongitude + "&current=temperature_2m,wind_speed_10m"
+		weatherAPIURL := "https://api.open-meteo.com/v1/forecast?latitude=" + latitudeText + "&longitude=" + longitudeText + "&current=temperature_2m,wind_speed_10m"
 		weatherResp, err := http.Get(weatherAPIURL)
 		if err != nil {
 			log.Println("Error fetching weather data:", err)
 			http.Error(w, "Error fetching weather data", http.StatusInternalServerError)
+			fmt.Println(err)
 			return
 		}
 		defer weatherResp.Body.Close()
@@ -77,12 +65,15 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println("Error parsing weather data:", err)
 			http.Error(w, "Error parsing weather data", http.StatusInternalServerError)
+			fmt.Println(err)
 			return
 		}
-		responseText := fmt.Sprintf("Добрый день! Сегодня температура %0.1f градусов, скорость ветра %0.1f м/с.", responseWeather.Сurrent.Temperature, responseWeather.Сurrent.Wind)
-		_, err = db.Exec("INSERT INTO text (latitude, longitude,temperature,wind) VALUES (?, ?, ?, ?)", strLatitude, strLongitude, responseWeather.Сurrent.Temperature, responseWeather.Сurrent.Wind)
+		responseText := fmt.Sprintf("Добрый день! Сегодня температура %0.1f градусов, скорость ветра %0.1f м/с.", responseWeather.Current.Temperature, responseWeather.Current.Temperature)
+		_, err = db.Exec("INSERT INTO text (date, latitude, longitude, temperature, wind) VALUES (strftime('%Y-%m-%d %H:%M:%S', 'now'), ?, ?, ?, ?)", responseWeather.Latitude, responseWeather.Longitude, responseWeather.Current.Temperature, responseWeather.Current.Wind)
+
 		if err != nil {
 			log.Fatal(err)
+			fmt.Println(err)
 		}
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
@@ -103,7 +94,7 @@ func main() {
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS text (
 			id INTEGER PRIMARY KEY,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		    date TEXT,
 			latitude  FLOAT,
 			longitude FLOAT,
 			temperature FLOAT,
