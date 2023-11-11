@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -53,15 +54,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(responseText))
 	} else {
-		query := r.URL.Query()
-		latitudeText := query.Get("latitude")
-		longitudeText := query.Get("longitude")
 
-		if latitudeText == "" || longitudeText == "" {
-			http.Error(w, "Latitude and longitude are required parameters", http.StatusBadRequest)
-			return
-		}
-		weatherAPIURL := "https://api.open-meteo.com/v1/forecast?latitude=" + latitudeText + "&longitude=" + longitudeText + "&current=temperature_2m,wind_speed_10m"
+		strLatitude := strconv.FormatFloat(coord.Latitude, 'f', -1, 64)
+		strLongitude := strconv.FormatFloat(coord.Longitude, 'f', -1, 64)
+
+		weatherAPIURL := "https://api.open-meteo.com/v1/forecast?latitude=" + strLatitude + "&longitude=" + strLongitude + "&current=temperature_2m,wind_speed_10m"
 		weatherResp, err := http.Get(weatherAPIURL)
 		if err != nil {
 			log.Println("Error fetching weather data:", err)
@@ -83,7 +80,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		responseText := fmt.Sprintf("Добрый день! Сегодня температура %0.1f градусов, скорость ветра %0.1f м/с.", responseWeather.Сurrent.Temperature, responseWeather.Сurrent.Wind)
-
+		_, err = db.Exec("INSERT INTO text (latitude, longitude,temperature,wind) VALUES (?, ?, ?, ?)", strLatitude, strLongitude, responseWeather.Сurrent.Temperature, responseWeather.Сurrent.Wind)
+		if err != nil {
+			log.Fatal(err)
+		}
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(responseText))
@@ -103,8 +103,11 @@ func main() {
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS text (
 			id INTEGER PRIMARY KEY,
-			latitude INT,
-			longitude INT
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			latitude  FLOAT,
+			longitude FLOAT,
+			temperature FLOAT,
+			wind FLOAT
 		)
 	`)
 
