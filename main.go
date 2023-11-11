@@ -33,7 +33,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	responseN := responseweather{}
 
 	err := row.Scan(&responseN.Latitude, &responseN.Longitude)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		log.Fatal(err)
 	}
 
