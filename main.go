@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -14,6 +15,8 @@ import (
 var db *sql.DB
 
 type responseweather struct {
+	Id        int
+	Date      string
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
 	Current   struct {
@@ -28,17 +31,18 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	latitudeText := query.Get("latitude")
 	longitudeText := query.Get("longitude")
 
-	row := db.QueryRow("SELECT * FROM text WHERE latitude = $1 AND longitude = $2 AND date >= datetime('now','-1 hours');", latitudeText, longitudeText)
+	row := db.QueryRow("SELECT * FROM weatherdata WHERE latitude = $1 AND longitude = $2 AND date >= datetime('now','-1 hours');", latitudeText, longitudeText)
 
 	responseN := responseweather{}
 
-	err := row.Scan(&responseN.Latitude, &responseN.Longitude)
+	err := row.Scan(&responseN.Latitude, &responseN.Longitude, &responseN.Current.Temperature, &responseN.Date, &responseN.Current.Wind, &responseN.Id)
+
 	if err != nil && err != sql.ErrNoRows {
 		log.Fatal(err)
 	}
 
 	if responseN.Latitude != 0 || responseN.Longitude != 0 {
-		responseText := fmt.Sprintf("Добрый день! Сегодня температура %0.1f градусов, скорость ветра %0.1f м/с.", responseN.Current.Temperature, responseN.Current.Wind)
+		responseText := fmt.Sprintf("Добрый день! Сегодня температура %d градусов, скорость ветра %d м/с.", formatInt(responseN.Current.Temperature), formatInt(responseN.Current.Wind))
 
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
@@ -68,8 +72,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println(err)
 			return
 		}
-		responseText := fmt.Sprintf("Добрый день! Сегодня температура %0.1f градусов, скорость ветра %0.1f м/с.", responseWeather.Current.Temperature, responseWeather.Current.Temperature)
-		_, err = db.Exec("INSERT INTO text (date, latitude, longitude, temperature, wind) VALUES (strftime('%Y-%m-%d %H:%M:%S', 'now'), ?, ?, ?, ?)", responseWeather.Latitude, responseWeather.Longitude, responseWeather.Current.Temperature, responseWeather.Current.Wind)
+		responseText := fmt.Sprintf("Добрый день! Сегодня температура %d градусов, скорость ветра %d м/с.", formatInt(responseWeather.Current.Temperature), formatInt(responseWeather.Current.Temperature))
+		_, err = db.Exec("INSERT INTO weatherdata (date, latitude, longitude, temperature, wind) VALUES (datetime('now'), ?, ?, ?, ?)", latitudeText, longitudeText, responseWeather.Current.Temperature, responseWeather.Current.Wind)
 
 		if err != nil {
 			log.Fatal(err)
@@ -83,6 +87,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func formatInt(num float64) int {
+	return int(math.Ceil(num))
+}
+
 func main() {
 	var err error
 
@@ -92,7 +100,7 @@ func main() {
 	}
 	defer db.Close()
 	_, err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS text (
+		CREATE TABLE IF NOT EXISTS weatherdata (
 			id INTEGER PRIMARY KEY,
 		    date TEXT,
 			latitude  FLOAT,
