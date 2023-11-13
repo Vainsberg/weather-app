@@ -39,6 +39,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil && err != sql.ErrNoRows {
 		log.Fatal(err)
+
 	}
 
 	if responseN.Latitude != 0 || responseN.Longitude != 0 {
@@ -62,6 +63,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		data, err := io.ReadAll(weatherResp.Body)
 		if err != nil {
 			log.Println(err)
+			fmt.Println(err)
 			return
 		}
 		var responseWeather responseweather
