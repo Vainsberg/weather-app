@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -94,7 +95,15 @@ func formatInt(num float64) int {
 }
 
 func main() {
+	var apiToken string
 	var err error
+	flag.StringVar(&apiToken, "api-token", "", "API токен")
+	flag.Parse()
+	if apiToken == "" {
+		fmt.Println("Необходимо указать API токен")
+		return
+	}
+	fmt.Printf("API токен: %s\n", apiToken)
 
 	db, err = sql.Open("sqlite3", "store.db")
 	if err != nil {
