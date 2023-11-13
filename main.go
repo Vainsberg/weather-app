@@ -35,7 +35,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	responseN := responseweather{}
 
-	err := row.Scan(&responseN.Latitude, &responseN.Longitude, &responseN.Current.Temperature, &responseN.Date, &responseN.Current.Wind, &responseN.Id)
+	err := row.Scan(&responseN.Id, &responseN.Date, &responseN.Latitude, &responseN.Longitude, &responseN.Current.Wind, &responseN.Current.Temperature)
 
 	if err != nil && err != sql.ErrNoRows {
 		log.Fatal(err)
