@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"weather/getweather"
-	"weather/viper"
+	"weather/internal/getweather"
+	"weather/internal/viper"
 
 	_ "github.com/mattn/go-sqlite3"
 )

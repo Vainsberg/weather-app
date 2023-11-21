@@ -1,6 +1,6 @@
 package getweather
 
-type responseweather struct {
+type Responseweather struct {
 	Id        int
 	Date      string
 	Latitude  float64 `json:"latitude"`

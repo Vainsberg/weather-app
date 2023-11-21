@@ -7,30 +7,24 @@ import (
 	"io"
 	"log"
 	"net/http"
-	formatint "weather/formatInt"
+	formatint "weather/pkg/formatInt"
+	repositoryweather "weather/repository"
 )
 
 var db *sql.DB
 
-func Handler(w http.ResponseWriter, r *http.Request) {
+type Handler struct {
+	weatherRepository repositoryweather.Repository
+}
+
+func (h *Handler) GetWeather(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	latitudeText := query.Get("latitude")
 	longitudeText := query.Get("longitude")
-
-	row := db.QueryRow("SELECT * FROM weatherdata WHERE latitude = $1 AND longitude = $2 AND date >= datetime('now','-1 hours');", latitudeText, longitudeText)
-
-	responseN := responseweather{}
-
-	err := row.Scan(&responseN.Id, &responseN.Date, &responseN.Latitude, &responseN.Longitude, &responseN.Current.Wind, &responseN.Current.Temperature)
-
-	if err != nil && err != sql.ErrNoRows {
-		log.Fatal(err)
-
-	}
+	responseN := h.weatherRepository.GetWeatherDataByCoordinates(latitudeText, longitudeText)
 
 	if responseN.Latitude != 0 || responseN.Longitude != 0 {
 		responseText := fmt.Sprintf("Добрый день! Сегодня температура %d градусов, скорость ветра %d м/с.", formatint.FormatInt(responseN.Current.Temperature), formatint.FormatInt(responseN.Current.Wind))
-
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(responseText))
@@ -42,7 +36,9 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			log.Println("Error fetching weather data:", err)
 			http.Error(w, "Error fetching weather data", http.StatusInternalServerError)
 			fmt.Println(err)
+
 			return
+
 		}
 		defer weatherResp.Body.Close()
 
@@ -50,15 +46,19 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 			fmt.Println(err)
+
 			return
+
 		}
-		var responseWeather responseweather
+		var responseWeather Responseweather
 		err = json.Unmarshal(data, &responseWeather)
 		if err != nil {
 			log.Println("Error parsing weather data:", err)
 			http.Error(w, "Error parsing weather data", http.StatusInternalServerError)
 			fmt.Println(err)
+
 			return
+
 		}
 		responseText := fmt.Sprintf("Добрый день! Сегодня температура %d градусов, скорость ветра %d м/с.", formatint.FormatInt(responseWeather.Current.Temperature), formatint.FormatInt(responseWeather.Current.Temperature))
 		_, err = db.Exec("INSERT INTO weatherdata (date, latitude, longitude, temperature, wind) VALUES (datetime('now'), ?, ?, ?, ?)", latitudeText, longitudeText, responseWeather.Current.Temperature, responseWeather.Current.Wind)
