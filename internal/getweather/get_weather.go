@@ -7,8 +7,10 @@ import (
 	"io"
 	"log"
 	"net/http"
-	formatint "weather/pkg/formatInt"
-	repositoryweather "weather/repository"
+
+	repositoryweather "github.com/Vainsberg/weather-app/internal/repository"
+	formatint "github.com/Vainsberg/weather-app/pkg/formatInt"
+	"github.com/Vainsberg/weather-app/response"
 )
 
 var db *sql.DB
@@ -50,7 +52,7 @@ func (h *Handler) GetWeather(w http.ResponseWriter, r *http.Request) {
 			return
 
 		}
-		var responseWeather Responseweather
+		var responseWeather response.Responseweather
 		err = json.Unmarshal(data, &responseWeather)
 		if err != nil {
 			log.Println("Error parsing weather data:", err)

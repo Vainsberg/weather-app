@@ -1,4 +1,4 @@
-package getweather
+package response
 
 type Responseweather struct {
 	Id        int

@@ -3,7 +3,8 @@ package repositoryweather
 import (
 	"database/sql"
 	"log"
-	"weather/internal/getweather"
+
+	"github.com/Vainsberg/weather-app/response"
 )
 
 type Repository struct {
@@ -14,10 +15,10 @@ func NewRepository(db *sql.DB) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) GetWeatherDataByCoordinates(latitudeText, longitudeText string) getweather.Responseweather {
+func (r *Repository) GetWeatherDataByCoordinates(latitudeText, longitudeText string) response.Responseweather {
 	row := r.db.QueryRow("SELECT * FROM weatherdata WHERE latitude = $1 AND longitude = $2 AND date >= datetime('now','-1 hours');", latitudeText, longitudeText)
 
-	responseN := getweather.Responseweather{}
+	responseN := response.Responseweather{}
 
 	err := row.Scan(&responseN.Id, &responseN.Date, &responseN.Latitude, &responseN.Longitude, &responseN.Current.Wind, &responseN.Current.Temperature)
 
