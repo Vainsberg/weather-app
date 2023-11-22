@@ -5,7 +5,7 @@ import (
 	"log"
 )
 
-func sqlite() {
+func CreateDB() *sql.DB {
 	var err error
 	db, err = sql.Open("sqlite3", "store.db")
 	if err != nil {
@@ -26,4 +26,5 @@ func sqlite() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	return db
 }

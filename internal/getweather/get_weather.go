@@ -19,6 +19,10 @@ type Handler struct {
 	weatherRepository repositoryweather.Repository
 }
 
+func NewHandler(repos *repositoryweather.Repository) *Handler {
+	return &Handler{weatherRepository: *repos}
+}
+
 func (h *Handler) GetWeather(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	latitudeText := query.Get("latitude")
