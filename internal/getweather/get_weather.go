@@ -1,7 +1,6 @@
 package getweather
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,11 +8,9 @@ import (
 	"net/http"
 
 	repositoryweather "github.com/Vainsberg/weather-app/internal/repository"
+	"github.com/Vainsberg/weather-app/internal/response"
 	formatint "github.com/Vainsberg/weather-app/pkg/formatInt"
-	"github.com/Vainsberg/weather-app/response"
 )
-
-var db *sql.DB
 
 type Handler struct {
 	weatherRepository repositoryweather.Repository
@@ -67,12 +64,7 @@ func (h *Handler) GetWeather(w http.ResponseWriter, r *http.Request) {
 
 		}
 		responseText := fmt.Sprintf("Добрый день! Сегодня температура %d градусов, скорость ветра %d м/с.", formatint.FormatInt(responseWeather.Current.Temperature), formatint.FormatInt(responseWeather.Current.Temperature))
-		_, err = db.Exec("INSERT INTO weatherdata (date, latitude, longitude, temperature, wind) VALUES (datetime('now'), ?, ?, ?, ?)", latitudeText, longitudeText, responseWeather.Current.Temperature, responseWeather.Current.Wind)
-
-		if err != nil {
-			log.Fatal(err)
-			fmt.Println(err)
-		}
+		h.weatherRepository.GetWeatherAddendumByCoordinates(latitudeText, longitudeText, responseN.Current.Temperature, responseN.Current.Wind)
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(responseText))
