@@ -15,6 +15,7 @@ func ValApiKey() string {
 		return "Ошибка чтения конфигурации:"
 	}
 	value := viper.GetString("API-KEY")
+
 	return value
 
 }
